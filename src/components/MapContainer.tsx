@@ -5,15 +5,15 @@ import { fetchAllStations } from '../services/bikeStationApi';
 import type { StationWithStatus } from '../types/types';
 import { getMarkerColor } from '../types/types';
 
-const MAPBOX_TOKEN = import.meta.env.PUBLIC_MAPBOX_TOKEN as string;
 const GDL_CENTER: [number, number] = [-103.3496, 20.6596];
 
 interface Props {
   onSelectStation: (station: StationWithStatus | null) => void;
   selectedId: string | null;
+  token: string;
 }
 
-export default function MapContainer({ onSelectStation, selectedId }: Props) {
+export default function MapContainer({ onSelectStation, selectedId, token }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, { marker: mapboxgl.Marker; el: HTMLElement }>>(new Map());
@@ -26,7 +26,7 @@ export default function MapContainer({ onSelectStation, selectedId }: Props) {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    mapboxgl.accessToken = token;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,

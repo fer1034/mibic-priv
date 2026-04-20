@@ -5,7 +5,11 @@ import StationPanel from './StationPanel';
 import { fetchAllStations } from '../services/bikeStationApi';
 import { useEffect } from 'react';
 
-export default function AppShell() {
+interface Props {
+  token: string;
+}
+
+export default function AppShell({ token }: Props) {
   const [stations, setStations] = useState<StationWithStatus[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -26,7 +30,7 @@ export default function AppShell() {
   return (
     <div className="app-body">
       <div className="map-wrapper">
-        <MapContainer onSelectStation={handleSelectStation} selectedId={selectedId} />
+        <MapContainer onSelectStation={handleSelectStation} selectedId={selectedId} token={token} />
       </div>
       <aside className="side-panel">
         <div className="side-panel-header">
