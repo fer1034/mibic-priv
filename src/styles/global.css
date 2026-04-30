@@ -368,3 +368,34 @@ html, body {
   transform: scale(1.3);
   box-shadow: 0 0 0 3px var(--primary), 0 4px 12px rgba(0,0,0,0.3);
 }
+
+/* Toggle button */
+.mode-toggle {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  background: white;
+  border: none;
+  border-radius: 999px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  gap: 0;
+}
+
+.mode-toggle span {
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6B7280;
+  transition: background 0.2s, color 0.2s;
+}
+
+.mode-toggle span.active {
+  background: var(--primary);
+  color: white;
+}

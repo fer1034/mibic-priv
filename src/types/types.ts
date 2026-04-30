@@ -19,9 +19,22 @@ export interface StationStatus {
 export interface StationWithStatus extends BikeStation, StationStatus {}
 
 export type MarkerColor = 'available' | 'empty' | 'full';
+export type DisplayMode = 'bikes' | 'docks';
 
 export function getMarkerColor(status: StationStatus): MarkerColor {
   if (status.num_docks_available === 0) return 'full';
   if (status.num_bikes_available === 0) return 'empty';
   return 'available';
+}
+
+export function getMarkerColorForMode(station: StationWithStatus, mode: DisplayMode): MarkerColor {
+  if (mode === 'bikes') {
+    if (station.num_docks_available === 0) return 'full';
+    if (station.num_bikes_available === 0) return 'empty';
+    return 'available';
+  } else {
+    // Docks mode: green if spaces available, yellow if full
+    if (station.num_docks_available === 0) return 'full';
+    return 'available';
+  }
 }

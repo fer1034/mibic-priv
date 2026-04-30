@@ -1,10 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import AppShell from '../components/AppShell';
-
-const token = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
 ---
 
 <Layout>
-  <AppShell client:load token={token} />
+  <AppShell client:load />
 </Layout>

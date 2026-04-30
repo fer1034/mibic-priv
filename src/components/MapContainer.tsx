@@ -1,69 +1,88 @@
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { fetchAllStations } from '../services/bikeStationApi';
-import type { StationWithStatus } from '../types/types';
-import { getMarkerColor } from '../types/types';
+import type { StationWithStatus, DisplayMode } from '../types/types';
+import { getMarkerColor, getMarkerColorForMode } from '../types/types';
 
 const GDL_CENTER: [number, number] = [-103.3496, 20.6596];
+const GDL_BOUNDS: mapboxgl.LngLatBoundsLike = [
+  [-103.46, 20.57],
+  [-103.24, 20.75],
+];
 
 interface Props {
+  stations: StationWithStatus[];
   onSelectStation: (station: StationWithStatus | null) => void;
   selectedId: string | null;
-  token: string;
+  displayMode: DisplayMode;
 }
 
-export default function MapContainer({ onSelectStation, selectedId, token }: Props) {
+export default function MapContainer({ stations, onSelectStation, selectedId, displayMode }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, { marker: mapboxgl.Marker; el: HTMLElement }>>(new Map());
   const popupRef = useRef<mapboxgl.Popup | null>(null);
-  const [stations, setStations] = useState<StationWithStatus[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Init map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    mapboxgl.accessToken = token;
+    let cancelled = false;
 
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: GDL_CENTER,
-      zoom: 13,
-    });
-
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.addControl(new mapboxgl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: false }), 'top-right');
-
-    mapRef.current = map;
-
-    map.on('load', async () => {
+    async function initMap() {
       try {
-        const data = await fetchAllStations();
-        setStations(data);
-        addMarkers(map, data);
+        const res = await fetch('/api/mapbox-token');
+        if (!res.ok) throw new Error(`${res.status}`);
+        const { token } = await res.json() as { token: string };
+
+        if (cancelled || !mapContainerRef.current) return;
+
+        mapboxgl.accessToken = token;
+
+        const map = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: GDL_CENTER,
+          zoom: 13,
+        });
+
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.addControl(new mapboxgl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: false }), 'top-right');
+
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          map.setMaxBounds(GDL_BOUNDS);
+        }
+
+        mapRef.current = map;
+
+        map.on('load', () => {
+          if (!cancelled) setMapReady(true);
+        });
       } catch (e) {
-        setError('No se pudo cargar la información de estaciones.');
-      } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setError('No se pudo inicializar el mapa.');
+        }
       }
-    });
+    }
+
+    initMap();
 
     return () => {
-      map.remove();
+      cancelled = true;
+      mapRef.current?.remove();
       mapRef.current = null;
     };
   }, []);
 
   function addMarkers(map: mapboxgl.Map, stationList: StationWithStatus[]) {
     stationList.forEach((station) => {
-      const colorClass = getMarkerColor(station);
+      const colorClass = getMarkerColorForMode(station, displayMode);
       const el = document.createElement('div');
       el.className = `custom-marker ${colorClass}`;
-      el.textContent = String(station.num_bikes_available);
+      el.textContent = String(displayMode === 'bikes' ? station.num_bikes_available : station.num_docks_available);
       el.title = station.name;
 
       const marker = new mapboxgl.Marker({ element: el })
@@ -102,6 +121,15 @@ export default function MapContainer({ onSelectStation, selectedId, token }: Pro
       .addTo(map);
   }
 
+  // Render markers when stations or displayMode changes
+  useEffect(() => {
+    if (!mapRef.current || stations.length === 0) return;
+
+    markersRef.current.forEach(({ marker }) => marker.remove());
+    markersRef.current.clear();
+    addMarkers(mapRef.current, stations);
+  }, [stations, displayMode]);
+
   // Sync selected marker highlight
   useEffect(() => {
     markersRef.current.forEach(({ el }, id) => {
@@ -120,7 +148,7 @@ export default function MapContainer({ onSelectStation, selectedId, token }: Pro
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={mapContainerRef} id="mapbox-container" />
-      {loading && (
+      {stations.length === 0 && (
         <div className="loading-overlay">
           <div className="spinner" />
           <span className="loading-text">Cargando estaciones...</span>

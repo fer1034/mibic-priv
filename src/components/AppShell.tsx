@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import type { StationWithStatus } from '../types/types';
+import type { StationWithStatus, DisplayMode } from '../types/types';
 import MapContainer from './MapContainer';
 import StationPanel from './StationPanel';
 import { fetchAllStations } from '../services/bikeStationApi';
 import { useEffect } from 'react';
 
-interface Props {
-  token: string;
-}
-
-export default function AppShell({ token }: Props) {
+export default function AppShell() {
   const [stations, setStations] = useState<StationWithStatus[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('bikes');
 
   useEffect(() => {
     fetchAllStations()
@@ -30,7 +27,20 @@ export default function AppShell({ token }: Props) {
   return (
     <div className="app-body">
       <div className="map-wrapper">
-        <MapContainer onSelectStation={handleSelectStation} selectedId={selectedId} token={token} />
+        <MapContainer
+          stations={stations}
+          onSelectStation={handleSelectStation}
+          selectedId={selectedId}
+          displayMode={displayMode}
+        />
+        <button
+          className="mode-toggle"
+          onClick={() => setDisplayMode(m => m === 'bikes' ? 'docks' : 'bikes')}
+          aria-label="Toggle between bikes and docking spaces"
+        >
+          <span className={displayMode === 'bikes' ? 'active' : ''}>🚲</span>
+          <span className={displayMode === 'docks' ? 'active' : ''}>🅿️</span>
+        </button>
       </div>
       <aside className="side-panel">
         <div className="side-panel-header">
